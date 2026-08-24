@@ -4,4 +4,4 @@ pytest-django>=4.9
 ruff>=0.9
 black>=25.1
 bandit>=1.8
-pip-audit>=2.8
+pip-audit>=2.10.1
