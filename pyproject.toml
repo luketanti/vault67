@@ -1,0 +1,27 @@
+[project]
+name = "vault67"
+version = "0.1.0"
+requires-python = ">=3.13"
+dependencies = ["Django>=5.2,<5.3", "psycopg[binary]>=3.2", "gunicorn>=23"]
+
+[tool.setuptools]
+packages = ["config", "config.settings", "core", "accounts", "ledger", "ledger.calculations", "investments", "tax", "reporting", "dashboard"]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings.test"
+python_files = ["test_*.py", "*_tests.py"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+exclude = ["*/migrations/*"]
+
+[tool.ruff.lint]
+ignore = ["DTZ011", "EXE001", "RUF012"]
+
+[tool.black]
+line-length = 100
+target-version = ["py313"]
+
+[tool.bandit]
+exclude_dirs = ["*/migrations/*", "tests"]

@@ -1,0 +1,31 @@
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+.Python
+build/
+dist/
+*.egg-info/
+.venv/
+venv/
+
+# Tests, linting, and coverage
+.pytest_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# Django
+staticfiles/
+media/
+*.sqlite3
+
+# Editors and operating systems
+.vscode/
+.idea/
+.DS_Store
