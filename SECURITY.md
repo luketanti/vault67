@@ -7,7 +7,7 @@ Only the latest `main` revision is currently supported.
 ## Reporting a vulnerability
 
 Do **not** report active vulnerabilities in public issues. Contact
-`SECURITY_CONTACT_TODO` privately; the repository owner must replace this
+`info@testemail.com` privately; the repository owner must replace this
 placeholder before public deployment.
 
 Include affected version/commit, reproduction steps, impact, and any suggested

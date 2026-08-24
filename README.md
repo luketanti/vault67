@@ -103,3 +103,19 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for the future Community/Pro separation.
 ## Current limits and next milestone
 
 No bank sync, market/FX API, tax engine, price-based investment valuation, categories, or reports are included. The next milestone should add explicit FX transfer entries, investment buy/sell ledger posting and holdings/cost-basis services, then a reporting-currency valuation layer.
+
+## Fixed-term deposits
+
+`FIXED_TERM` accounts store their contract in a separate `FixedTermDetails`
+record. Rates use decimal fractions internally (`0.0325` means 3.25%), while the
+form accepts the familiar percentage value (`3.25`). Simple and compound
+projections use ACT/365; compound terms support daily, monthly, quarterly, and
+annual frequencies. Actual calendar days are always divided by 365, including
+terms that cross a leap day.
+
+The contractual principal is distinct from the ledger balance. On creation,
+Vault67 posts either one linked same-currency transfer from the selected funding
+account or an opening deposit when no funding account is selected. Editing the
+contract later does not rewrite that ledger history. Projected gross interest,
+accrued interest, and maturity values are estimates only: they do not post
+interest, settle maturity, renew a deposit, calculate penalties, or withhold tax.
