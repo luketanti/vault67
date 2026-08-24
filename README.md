@@ -35,6 +35,10 @@ docker compose exec web python manage.py seed_demo_data
 
 The demo user is `demo` / `demo`. Never use it outside local development.
 
+The included Compose configuration is for local use and runs Django's development
+settings on `localhost`. For a public deployment, run `config.settings.production`
+behind a TLS-terminating reverse proxy and provide production host/CSRF settings.
+
 ## Developer commands
 
 ```bash

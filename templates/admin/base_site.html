@@ -1,0 +1,18 @@
+{% extends "admin/base.html" %}
+{% load static %}
+
+{% block title %}{{ title }} | Vault67 Administration{% endblock %}
+
+{% block extrastyle %}
+  {{ block.super }}
+  <link rel="stylesheet" href="{% static 'vault67/css/admin.css' %}">
+{% endblock %}
+
+{% block branding %}
+  <div id="site-name" class="v67-admin-brand">
+    <img src="{% static 'vault67/logo-mark.svg' %}" alt="">
+    <a href="{% url 'admin:index' %}">Vault<span>67</span> <small>Administration</small></a>
+  </div>
+{% endblock %}
+
+{% block nav-global %}<a class="v67-return-link" href="{% url 'dashboard:index' %}">Return to Vault67</a>{% endblock %}
