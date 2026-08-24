@@ -1,0 +1,2 @@
+/* Dashboard application section headers must not inherit Django's header-link color. */
+.dashboard .module caption,.dashboard .module caption a{background:var(--v67-surface-hover)!important;color:var(--v67-text)!important}.dashboard .module caption{border-bottom:1px solid var(--v67-border);font-weight:750}.dashboard .module caption a:hover{color:var(--v67-primary)!important}

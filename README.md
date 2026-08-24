@@ -29,7 +29,6 @@ The web server applies migrations on startup and is available at `http://localho
 
 ```bash
 docker compose exec web python manage.py createsuperuser
-docker compose exec web python manage.py seed_currencies
 docker compose exec web python manage.py seed_demo_data
 ```
 
