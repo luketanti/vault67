@@ -88,6 +88,23 @@ def test_partial_period_accrual(fixed_term_base):
     assert progress.accrued_interest == Decimal(10000) * Decimal("0.03") * Decimal(182) / Decimal(365)
 
 
+@pytest.mark.django_db
+def test_fixed_term_edit_keeps_native_date_values_and_formats_rate(client, fixed_term_base):
+    owner, _, account = fixed_term_base
+    details = make_details(account, annual_interest_rate=Decimal("0.0325"))
+    details.full_clean()
+    details.save()
+    client.force_login(owner)
+
+    edit_response = client.get(reverse("accounts:edit", args=[account.pk]))
+    detail_response = client.get(reverse("accounts:detail", args=[account.pk]))
+
+    assert 'id="id_fixed_start_date"' in edit_response.content.decode()
+    assert 'value="2026-01-01"' in edit_response.content.decode()
+    assert 'value="2027-01-01"' in edit_response.content.decode()
+    assert "3.25%" in detail_response.content.decode()
+
+
 @pytest.mark.parametrize("frequency,periods", [("MONTHLY", 12), ("QUARTERLY", 4), ("ANNUALLY", 1)])
 def test_compound_interest_frequencies(frequency, periods):
     projection = calculate_fixed_term_projection(

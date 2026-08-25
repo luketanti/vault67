@@ -17,10 +17,12 @@ class FinancialAccountForm(forms.ModelForm):
         min_value=Decimal("0.0001"), max_digits=20, decimal_places=4, required=False
     )
     fixed_start_date = forms.DateField(
-        required=False, widget=forms.DateInput(attrs={"type": "date"})
+        required=False,
+        widget=forms.DateInput(format="%Y-%m-%d", attrs={"type": "date"}),
     )
     fixed_maturity_date = forms.DateField(
-        required=False, widget=forms.DateInput(attrs={"type": "date"})
+        required=False,
+        widget=forms.DateInput(format="%Y-%m-%d", attrs={"type": "date"}),
     )
     fixed_annual_rate_percent = forms.DecimalField(
         min_value=Decimal(0), max_digits=10, decimal_places=6, required=False,
@@ -68,7 +70,9 @@ class FinancialAccountForm(forms.ModelForm):
             "opening_date",
             "notes",
         ]
-        widgets = {"opening_date": forms.DateInput(attrs={"type": "date"})}
+        widgets = {
+            "opening_date": forms.DateInput(format="%Y-%m-%d", attrs={"type": "date"})
+        }
 
     def __init__(self, *args, user=None, **kwargs):
         super().__init__(*args, **kwargs)
