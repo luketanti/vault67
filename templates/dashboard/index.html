@@ -1,1 +1,52 @@
-{% extends 'base.html' %}{% block content %}<div class="page-heading d-flex justify-content-between align-items-end"><div><h1>Financial overview</h1><p>A clear picture of where you stand today.</p></div><a class="btn btn-primary" href="{% url 'ledger:transfer' %}">New transfer</a></div><div class="row g-3"><div class="col-md-4"><div class="card metric-card"><span class="metric-label">Total assets</span><strong class="metric-value">{{ total_assets|floatformat:2 }}</strong></div></div><div class="col-md-4"><div class="card metric-card"><span class="metric-label">Total liabilities</span><strong class="metric-value">{{ total_liabilities|floatformat:2 }}</strong></div></div><div class="col-md-4"><div class="card metric-card metric-card--accent"><span class="metric-label">Net worth</span><strong class="metric-value">{{ net_worth|floatformat:2 }}</strong></div></div>{% if fixed_term_count %}<div class="col-md-4"><div class="card metric-card"><span class="metric-label">Fixed-term deposits</span><strong class="metric-value">{{ fixed_term_total|floatformat:2 }} {{ reporting_currency }}</strong>{% if next_fixed_term_maturity %}<small class="text-muted">Next maturity {{ next_fixed_term_maturity }}</small>{% endif %}</div></div>{% endif %}</div><div class="card mt-4"><div class="card-header d-flex justify-content-between"><span>Your accounts</span><a href="{% url 'accounts:list' %}">View all</a></div><div class="table-responsive"><table class="table mb-0"><thead><tr><th>Name</th><th>Type</th><th class="text-end">Balance</th></tr></thead><tbody>{% for account in accounts %}<tr><td><a href="{% url 'accounts:detail' account.pk %}">{{ account.name }}</a></td><td><span class="badge-soft">{{ account.get_account_type_display }}</span></td><td class="text-end {% if account.balance >= 0 %}amount-positive{% else %}amount-negative{% endif %}">{{ account.balance|floatformat:2 }} {{ account.currency.code }}</td></tr>{% empty %}<tr><td colspan="3" class="empty-state">No accounts yet.</td></tr>{% endfor %}</tbody></table></div></div>{% endblock %}
+{% extends 'base.html' %}
+
+{% block content %}
+  <div class="page-heading d-flex justify-content-between align-items-end">
+    <div>
+      <h1>Financial overview</h1>
+      <p>A clear picture of where you stand today.</p>
+    </div>
+    <a class="btn btn-primary" href="{% url 'ledger:transfer' %}">New transfer</a>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-md-4"><div class="card metric-card"><span class="metric-label">Total assets</span><strong class="metric-value">{{ total_assets|floatformat:2 }}</strong></div></div>
+    <div class="col-md-4"><div class="card metric-card"><span class="metric-label">Total liabilities</span><strong class="metric-value">{{ total_liabilities|floatformat:2 }}</strong></div></div>
+    <div class="col-md-4"><div class="card metric-card metric-card--accent"><span class="metric-label">Net worth</span><strong class="metric-value">{{ net_worth|floatformat:2 }}</strong></div></div>
+    {% if fixed_term_count %}<div class="col-md-4"><div class="card metric-card"><span class="metric-label">Fixed-term deposits</span><strong class="metric-value">{{ fixed_term_total|floatformat:2 }} {{ reporting_currency }}</strong>{% if next_fixed_term_maturity %}<small class="text-muted">Next maturity {{ next_fixed_term_maturity }}</small>{% endif %}</div></div>{% endif %}
+  </div>
+
+  <div class="row g-4 mt-1">
+    <section class="col-lg-7" aria-labelledby="account-chart-title">
+      <div class="card chart-card h-100">
+        <div class="card-header"><h2 id="account-chart-title" class="chart-title">Account allocation</h2><span class="chart-caption">Current balances in {{ reporting_currency }}</span></div>
+        <div class="chart-card-body">
+          {% for item in account_chart %}
+            <div class="allocation-row">
+              <div class="allocation-label"><span>{{ item.name }}</span><strong>{% if item.is_liability %}−{% endif %}{{ item.amount|floatformat:2 }}</strong></div>
+              <div class="allocation-track" role="img" aria-label="{{ item.name }}: {% if item.is_liability %}liability {% endif %}{{ item.amount|floatformat:2 }} {{ reporting_currency }}"><div class="allocation-bar {% if item.is_liability %}allocation-bar--liability{% endif %}" style="--chart-size: {{ item.percentage }}%"></div></div>
+            </div>
+          {% empty %}<p class="empty-chart">Add an account with a balance to see its allocation.</p>{% endfor %}
+        </div>
+      </div>
+    </section>
+    <section class="col-lg-5" aria-labelledby="cashflow-chart-title">
+      <div class="card chart-card h-100">
+        <div class="card-header"><h2 id="cashflow-chart-title" class="chart-title">Net-worth movement</h2><span class="chart-caption">Monthly change · last 6 months</span></div>
+        <div class="chart-card-body">
+          <div class="cashflow-chart" role="img" aria-label="Monthly net-worth movement for the last six months in {{ reporting_currency }}">
+            {% for item in cashflow_chart %}
+              <div class="cashflow-row"><span class="cashflow-label">{{ item.label }}</span><div class="cashflow-track"><div class="cashflow-bar {% if item.is_positive %}cashflow-bar--positive{% else %}cashflow-bar--negative{% endif %}" style="--chart-size: {{ item.percentage }}%"></div></div><strong class="cashflow-value {% if item.is_positive %}amount-positive{% else %}amount-negative{% endif %}">{% if item.is_positive %}+{% endif %}{{ item.amount|floatformat:2 }}</strong></div>
+            {% endfor %}
+          </div>
+          <p class="chart-note">Transfers between accounts cancel out, so this shows changes to your total position.</p>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="card mt-4">
+    <div class="card-header d-flex justify-content-between"><span>Your accounts</span><a href="{% url 'accounts:list' %}">View all</a></div>
+    <div class="table-responsive"><table class="table mb-0"><thead><tr><th>Name</th><th>Type</th><th class="text-end">Balance</th></tr></thead><tbody>{% for account in accounts %}<tr><td><a href="{% url 'accounts:detail' account.pk %}">{{ account.name }}</a></td><td><span class="badge-soft">{{ account.get_account_type_display }}</span></td><td class="text-end {% if account.balance >= 0 %}amount-positive{% else %}amount-negative{% endif %}">{{ account.balance|floatformat:2 }} {{ account.currency.code }}</td></tr>{% empty %}<tr><td colspan="3" class="empty-state">No accounts yet.</td></tr>{% endfor %}</tbody></table></div>
+  </div>
+{% endblock %}

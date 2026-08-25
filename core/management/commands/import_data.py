@@ -29,7 +29,12 @@ class Command(BaseCommand):
         currency_model = apps.get_model("core.currency")
         with transaction.atomic():
             currency_model.objects.all().delete()
-            call_command("loaddata", options["input"], verbosity=options["verbosity"])
+            call_command(
+                "loaddata",
+                options["input"],
+                format="json",
+                verbosity=options["verbosity"],
+            )
             self._reset_sequences()
 
         self.stdout.write(self.style.SUCCESS("Vault67 backup restored successfully."))
