@@ -65,6 +65,27 @@ secret immediately. Keep images and dependencies updated, back up PostgreSQL,
 and protect backups: they contain sensitive financial data and should be
 encrypted, access-controlled, stored separately, and restoration-tested.
 
+## Backup and restore
+
+Export all Vault67 data—including users, accounts, transactions, investments,
+and settings—to a portable JSON file:
+
+```bash
+docker compose exec -T web python manage.py export_data > vault67-backup.json
+```
+
+To restore it, start a new Vault67 instance so migrations have completed, but
+before creating any users or entering data. Then run:
+
+```bash
+docker compose exec -T web python manage.py import_data - < vault67-backup.json
+```
+
+Restoration deliberately refuses a database containing Vault67 data. The
+initially seeded currencies on a new container are safely replaced with the
+currencies in the backup. Backup files contain credentials hashes and sensitive
+financial data; store and transfer them securely.
+
 Vault67 never stores online-banking usernames or passwords. Future integrations
 must use official Open Banking/PSD2, OAuth, or institution-provided APIs. Add
 login rate limiting before exposing a deployment to the public Internet. CSV
