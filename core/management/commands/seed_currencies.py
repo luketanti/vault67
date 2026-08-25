@@ -2,7 +2,8 @@
 
 from urllib.error import URLError
 from urllib.request import urlopen
-from xml.etree import ElementTree
+
+from defusedxml import ElementTree
 
 from django.core.management.base import BaseCommand
 
