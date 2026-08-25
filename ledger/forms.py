@@ -1,6 +1,31 @@
 from django import forms
 
 
+class TransactionImportForm(forms.Form):
+    csv_file = forms.FileField(
+        label="CSV or PDF file",
+        help_text=(
+            "CSV files require Transaction Date, Description, and Amount columns. "
+            "Text-based Multitude Bank PDF statements are also accepted."
+        ),
+        widget=forms.ClearableFileInput(attrs={"accept": ".csv,.pdf,text/csv,application/pdf"}),
+    )
+
+    def clean_csv_file(self):
+        csv_file = self.cleaned_data["csv_file"]
+        if csv_file.size > 5 * 1024 * 1024:
+            raise forms.ValidationError("The import file must be 5 MB or smaller.")
+        filename = csv_file.name.casefold()
+        if not filename.endswith((".csv", ".pdf")):
+            raise forms.ValidationError("Choose a CSV or PDF file.")
+        if filename.endswith(".pdf"):
+            header = csv_file.read(1024)
+            csv_file.seek(0)
+            if b"%PDF-" not in header:
+                raise forms.ValidationError("The selected file is not a valid PDF.")
+        return csv_file
+
+
 class EntryForm(forms.Form):
     account = forms.ModelChoiceField(queryset=None)
     amount = forms.DecimalField(min_value=0.0001, decimal_places=4, max_digits=20)

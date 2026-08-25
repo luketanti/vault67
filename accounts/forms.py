@@ -2,6 +2,9 @@ from decimal import Decimal
 
 from django import forms
 from django.core.exceptions import ValidationError
+from django.db.models import Q
+
+from tax.models import ReturnTaxTreatment
 
 from .models import FinancialAccount, FixedTermDetails, Institution
 
@@ -13,6 +16,15 @@ class InstitutionForm(forms.ModelForm):
 
 
 class FinancialAccountForm(forms.ModelForm):
+    savings_annual_interest_rate_percent = forms.DecimalField(
+        label="Annual interest rate (%)",
+        min_value=Decimal(0),
+        max_value=Decimal(100),
+        max_digits=5,
+        decimal_places=2,
+        required=False,
+        help_text="Optional percentage rate for savings accounts, for example 3.25.",
+    )
     fixed_principal = forms.DecimalField(
         min_value=Decimal("0.0001"), max_digits=20, decimal_places=4, required=False
     )
@@ -25,7 +37,10 @@ class FinancialAccountForm(forms.ModelForm):
         widget=forms.DateInput(format="%Y-%m-%d", attrs={"type": "date"}),
     )
     fixed_annual_rate_percent = forms.DecimalField(
-        min_value=Decimal(0), max_digits=10, decimal_places=6, required=False,
+        min_value=Decimal(0),
+        max_digits=10,
+        decimal_places=2,
+        required=False,
         help_text="Percentage rate, for example 3.25 for 3.25%.",
     )
     fixed_interest_method = forms.ChoiceField(
@@ -55,7 +70,8 @@ class FinancialAccountForm(forms.ModelForm):
         queryset=FinancialAccount.objects.none(), required=False
     )
     funding_account = forms.ModelChoiceField(
-        queryset=FinancialAccount.objects.none(), required=False,
+        queryset=FinancialAccount.objects.none(),
+        required=False,
         help_text="Optional. Creates one linked transfer for the contractual principal.",
     )
 
@@ -69,10 +85,9 @@ class FinancialAccountForm(forms.ModelForm):
             "account_number_last4",
             "opening_date",
             "notes",
+            "return_tax_treatment",
         ]
-        widgets = {
-            "opening_date": forms.DateInput(format="%Y-%m-%d", attrs={"type": "date"})
-        }
+        widgets = {"opening_date": forms.DateInput(format="%Y-%m-%d", attrs={"type": "date"})}
 
     def __init__(self, *args, user=None, **kwargs):
         super().__init__(*args, **kwargs)
@@ -82,6 +97,12 @@ class FinancialAccountForm(forms.ModelForm):
                 owner=user, active=True
             )
             accounts = FinancialAccount.objects.filter(owner=user, active=True)
+            treatments = ReturnTaxTreatment.objects.filter(owner=user, active=True)
+            if self.instance.return_tax_treatment_id:
+                treatments = ReturnTaxTreatment.objects.filter(owner=user).filter(
+                    Q(active=True) | Q(pk=self.instance.return_tax_treatment_id)
+                )
+            self.fields["return_tax_treatment"].queryset = treatments
             if self.instance.pk:
                 accounts = accounts.exclude(pk=self.instance.pk)
             for name in (
@@ -92,6 +113,10 @@ class FinancialAccountForm(forms.ModelForm):
                 self.fields[name].queryset = accounts
         if self.instance.pk:
             self.fields.pop("funding_account")
+        if self.instance.pk and self.instance.savings_annual_interest_rate is not None:
+            self.initial["savings_annual_interest_rate_percent"] = (
+                self.instance.savings_annual_interest_rate * Decimal(100)
+            ).quantize(Decimal("0.01"))
         if self.instance.pk and self.instance.account_type == FinancialAccount.Type.FIXED_TERM:
             try:
                 details = self.instance.fixed_term_details
@@ -102,7 +127,9 @@ class FinancialAccountForm(forms.ModelForm):
                     fixed_principal=details.principal,
                     fixed_start_date=details.start_date,
                     fixed_maturity_date=details.maturity_date,
-                    fixed_annual_rate_percent=details.annual_interest_rate * Decimal(100),
+                    fixed_annual_rate_percent=(details.annual_interest_rate * Decimal(100)).quantize(
+                        Decimal("0.01")
+                    ),
                     fixed_interest_method=details.interest_method,
                     fixed_compounding_frequency=details.compounding_frequency,
                     fixed_interest_payment_method=details.interest_payment_method,
@@ -122,6 +149,11 @@ class FinancialAccountForm(forms.ModelForm):
             and cleaned["account_type"] != self.instance.account_type
         ):
             self.add_error("account_type", "Account type cannot be changed after creation.")
+        tax_treatment = cleaned.get("return_tax_treatment")
+        if tax_treatment and self.user and tax_treatment.owner_id != self.user.id:
+            self.add_error("return_tax_treatment", "Select a valid choice.")
+        if cleaned.get("account_type") != FinancialAccount.Type.SAVINGS:
+            cleaned["savings_annual_interest_rate_percent"] = None
         if cleaned.get("account_type") != FinancialAccount.Type.FIXED_TERM:
             return cleaned
         required = {
@@ -143,14 +175,16 @@ class FinancialAccountForm(forms.ModelForm):
             and cleaned["fixed_maturity_date"] <= cleaned["fixed_start_date"]
         ):
             self.add_error("fixed_maturity_date", "Maturity date must be after the start date.")
-        if (
-            cleaned.get("fixed_interest_method") == FixedTermDetails.InterestMethod.COMPOUND
-            and not cleaned.get("fixed_compounding_frequency")
+        if cleaned.get(
+            "fixed_interest_method"
+        ) == FixedTermDetails.InterestMethod.COMPOUND and not cleaned.get(
+            "fixed_compounding_frequency"
         ):
             self.add_error("fixed_compounding_frequency", "Compound interest requires a frequency.")
-        if (
-            cleaned.get("fixed_interest_destination") == FixedTermDetails.InterestDestination.PAID_OUT
-            and not cleaned.get("fixed_interest_destination_account")
+        if cleaned.get(
+            "fixed_interest_destination"
+        ) == FixedTermDetails.InterestDestination.PAID_OUT and not cleaned.get(
+            "fixed_interest_destination_account"
         ):
             self.add_error("fixed_interest_destination_account", "Select a payout account.")
         funding = cleaned.get("funding_account")
@@ -158,6 +192,16 @@ class FinancialAccountForm(forms.ModelForm):
         if funding and currency and funding.currency_id != currency.pk:
             self.add_error("funding_account", "Funding account currency must match.")
         return cleaned
+
+    def save(self, commit=True):
+        rate_percent = self.cleaned_data.get("savings_annual_interest_rate_percent")
+        self.instance.savings_annual_interest_rate = (
+            rate_percent / Decimal(100)
+            if self.cleaned_data.get("account_type") == FinancialAccount.Type.SAVINGS
+            and rate_percent is not None
+            else None
+        )
+        return super().save(commit=commit)
 
     def save_fixed_term_details(self, account):
         if account.account_type != FinancialAccount.Type.FIXED_TERM:
@@ -169,7 +213,8 @@ class FinancialAccountForm(forms.ModelForm):
                 "principal": self.cleaned_data["fixed_principal"],
                 "start_date": self.cleaned_data["fixed_start_date"],
                 "maturity_date": self.cleaned_data["fixed_maturity_date"],
-                "annual_interest_rate": self.cleaned_data["fixed_annual_rate_percent"] / Decimal(100),
+                "annual_interest_rate": self.cleaned_data["fixed_annual_rate_percent"]
+                / Decimal(100),
                 "interest_method": self.cleaned_data["fixed_interest_method"],
             },
         )
@@ -181,11 +226,17 @@ class FinancialAccountForm(forms.ModelForm):
         details.compounding_frequency = self.cleaned_data["fixed_compounding_frequency"]
         details.interest_payment_method = self.cleaned_data["fixed_interest_payment_method"]
         details.interest_destination = self.cleaned_data["fixed_interest_destination"]
-        details.interest_destination_account = self.cleaned_data["fixed_interest_destination_account"]
+        details.interest_destination_account = self.cleaned_data[
+            "fixed_interest_destination_account"
+        ]
         details.early_withdrawal_allowed = self.cleaned_data["fixed_early_withdrawal_allowed"]
-        details.early_withdrawal_penalty_notes = self.cleaned_data["fixed_early_withdrawal_penalty_notes"]
+        details.early_withdrawal_penalty_notes = self.cleaned_data[
+            "fixed_early_withdrawal_penalty_notes"
+        ]
         details.maturity_instruction = self.cleaned_data["fixed_maturity_instruction"]
-        details.maturity_destination_account = self.cleaned_data["fixed_maturity_destination_account"]
+        details.maturity_destination_account = self.cleaned_data[
+            "fixed_maturity_destination_account"
+        ]
         try:
             details.full_clean()
         except ValidationError as error:

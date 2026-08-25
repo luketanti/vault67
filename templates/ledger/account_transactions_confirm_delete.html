@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-heading">
+  <div>
+    <h1>Delete all account transactions?</h1>
+    <p>This action cannot be undone.</p>
+  </div>
+</div>
+<div class="card form-card">
+  <p>You are about to delete <strong>{{ transaction_count }} transaction{{ transaction_count|pluralize }}</strong> associated with <strong>{{ account.name }}</strong>.</p>
+  {% if affects_other_accounts %}
+    <div class="alert alert-warning">Some are transfers involving other accounts. Those complete transfers, including their entries in the other accounts, will also be deleted.</div>
+  {% endif %}
+  <form method="post">
+    {% csrf_token %}
+    <div class="d-flex gap-2">
+      <button class="btn btn-danger"{% if not transaction_count %} disabled{% endif %}>Yes, delete all transactions</button>
+      <a href="{% url 'accounts:detail' account.pk %}" class="btn btn-outline-secondary">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

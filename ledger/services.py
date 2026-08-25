@@ -6,7 +6,7 @@ from django.db import transaction as db_transaction
 from .models import Transaction, TransactionEntry
 
 
-def _create(owner, account, amount, transaction_type, date, description, notes=""):
+def _create(owner, account, amount, transaction_type, date, description, notes="", reference=""):
     if amount == Decimal(0):
         raise ValidationError("Amount must not be zero.")
     if account.owner_id != owner.id:
@@ -17,6 +17,7 @@ def _create(owner, account, amount, transaction_type, date, description, notes="
             transaction_date=date,
             description=description,
             notes=notes,
+            reference=reference,
             transaction_type=transaction_type,
         )
         TransactionEntry.objects.create(
@@ -93,3 +94,27 @@ def account_balance(account):
     from django.db.models import Sum
 
     return account.entries.aggregate(total=Sum("amount"))["total"] or Decimal(0)
+
+
+def delete_transaction(owner, entry_transaction):
+    if entry_transaction.owner_id != owner.id:
+        raise ValidationError("Transaction does not belong to user.")
+    with db_transaction.atomic():
+        entry_transaction.entries.all().delete()
+        entry_transaction.delete()
+
+
+def delete_account_transactions(owner, account):
+    if account.owner_id != owner.id:
+        raise ValidationError("Account does not belong to user.")
+    with db_transaction.atomic():
+        transaction_ids = list(
+            Transaction.objects.filter(owner=owner, entries__account=account)
+            .distinct()
+            .values_list("pk", flat=True)
+        )
+        if not transaction_ids:
+            return 0
+        TransactionEntry.objects.filter(transaction_id__in=transaction_ids).delete()
+        Transaction.objects.filter(pk__in=transaction_ids, owner=owner).delete()
+    return len(transaction_ids)

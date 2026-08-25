@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-heading">
+  <div>
+    <h1>Import transactions</h1>
+    <p>Upload a CSV or PDF statement into {{ account.name }} ({{ account.currency.code }}).</p>
+  </div>
+</div>
+<form method="post" enctype="multipart/form-data" class="card form-card">
+  {% csrf_token %}
+  {{ form.as_div }}
+  <div class="mt-3 text-muted small">
+    <p class="mb-1"><strong>CSV:</strong> the first row must contain Transaction Date, Description, and Amount. Value Date is optional.</p>
+    <p class="mb-1">Use DD/MM/YYYY or YYYY-MM-DD dates. Positive amounts add to the account; negative amounts subtract from it.</p>
+    <p class="mb-0"><strong>PDF:</strong> Multitude Bank text-based account statements are supported. Scanned image-only PDFs are not supported.</p>
+  </div>
+  <div class="mt-4 d-flex gap-2">
+    <button class="btn btn-primary">Import transactions</button>
+    <a href="{% url 'accounts:detail' account.pk %}" class="btn btn-outline-secondary">Cancel</a>
+  </div>
+</form>
+{% endblock %}

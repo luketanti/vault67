@@ -1,7 +1,9 @@
+from decimal import Decimal
+
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 from django.core.exceptions import ValidationError
-from django.core.validators import MinValueValidator
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.utils import timezone
 
@@ -67,12 +69,48 @@ class FinancialAccount(TimeStampedModel):
     closing_date = models.DateField(null=True, blank=True)
     active = models.BooleanField(default=True)
     notes = models.TextField(blank=True)
+    return_tax_treatment = models.ForeignKey(
+        "tax.ReturnTaxTreatment",
+        on_delete=models.PROTECT,
+        related_name="accounts",
+        null=True,
+        blank=True,
+    )
+    savings_annual_interest_rate = models.DecimalField(
+        max_digits=12,
+        decimal_places=8,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0), MaxValueValidator(1)],
+        help_text="Annual rate stored as a decimal fraction; 0.0325 means 3.25%.",
+    )
 
     class Meta:
         ordering = ["name"]
 
     def __str__(self):
         return self.name
+
+    def clean(self):
+        errors = {}
+        if (
+            self.return_tax_treatment_id
+            and self.owner_id
+            and self.return_tax_treatment.owner_id != self.owner_id
+        ):
+            errors["return_tax_treatment"] = "Tax treatment must belong to the same user."
+        if self.savings_annual_interest_rate is not None and self.account_type != self.Type.SAVINGS:
+            errors["savings_annual_interest_rate"] = (
+                "An interest rate can only be set on a savings account."
+            )
+        if errors:
+            raise ValidationError(errors)
+
+    @property
+    def savings_annual_interest_rate_percent(self):
+        if self.savings_annual_interest_rate is None:
+            return None
+        return self.savings_annual_interest_rate * Decimal(100)
 
 
 class FixedTermDetails(TimeStampedModel):

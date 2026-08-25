@@ -1,6 +1,13 @@
 from django.urls import path
 
-from .views import EntryCreateView, TransactionListView, TransferCreateView
+from .views import (
+    AccountTransactionsDeleteView,
+    EntryCreateView,
+    TransactionDeleteView,
+    TransactionImportView,
+    TransactionListView,
+    TransferCreateView,
+)
 
 app_name = "ledger"
 urlpatterns = [
@@ -24,4 +31,11 @@ urlpatterns = [
         name="expense",
     ),
     path("transfer/", TransferCreateView.as_view(), name="transfer"),
+    path("import/<int:account_pk>/", TransactionImportView.as_view(), name="import"),
+    path("<int:pk>/delete/", TransactionDeleteView.as_view(), name="delete"),
+    path(
+        "account/<int:account_pk>/delete-all/",
+        AccountTransactionsDeleteView.as_view(),
+        name="delete-account-transactions",
+    ),
 ]

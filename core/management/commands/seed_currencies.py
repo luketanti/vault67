@@ -8,16 +8,29 @@ from django.core.management.base import BaseCommand
 
 from core.models import Currency
 
-
 ISO_4217_LIST_ONE_URL = (
     "https://www.six-group.com/dam/download/financial-information/"
     "data-center/iso-currrency/lists/list-one.xml"
 )
 SYMBOLS = {
-    "AED": "د.إ", "AUD": "A$", "BRL": "R$", "CAD": "C$", "CHF": "CHF",
-    "CNY": "¥", "EUR": "€", "GBP": "£", "HKD": "HK$", "INR": "₹",
-    "JPY": "¥", "KRW": "₩", "MXN": "MX$", "NZD": "NZ$", "SGD": "S$",
-    "TRY": "₺", "USD": "$", "ZAR": "R",
+    "AED": "د.إ",
+    "AUD": "A$",
+    "BRL": "R$",
+    "CAD": "C$",
+    "CHF": "CHF",
+    "CNY": "¥",
+    "EUR": "€",
+    "GBP": "£",
+    "HKD": "HK$",
+    "INR": "₹",
+    "JPY": "¥",
+    "KRW": "₩",
+    "MXN": "MX$",
+    "NZD": "NZ$",
+    "SGD": "S$",
+    "TRY": "₺",
+    "USD": "$",
+    "ZAR": "R",
 }
 FALLBACK_CURRENCIES = (
     ("EUR", "Euro", "€", 2),
@@ -66,11 +79,19 @@ class Command(BaseCommand):
                 currencies = fetch_iso_4217_currencies()
             except (URLError, OSError, ElementTree.ParseError) as error:
                 self.stderr.write(
-                    self.style.WARNING(f"Could not refresh ISO 4217 currencies: {error}. Using fallback."))
+                    self.style.WARNING(
+                        f"Could not refresh ISO 4217 currencies: {error}. Using fallback."
+                    )
+                )
 
         for code, name, symbol, decimal_places in currencies:
             Currency.objects.update_or_create(
                 code=code,
-                defaults={"name": name, "symbol": symbol, "decimal_places": decimal_places, "active": True},
+                defaults={
+                    "name": name,
+                    "symbol": symbol,
+                    "decimal_places": decimal_places,
+                    "active": True,
+                },
             )
         self.stdout.write(self.style.SUCCESS(f"{len(currencies)} current currencies are ready."))

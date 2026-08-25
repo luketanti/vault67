@@ -8,6 +8,7 @@ from accounts.models import FinancialAccount, FixedTermDetails, Institution
 from core.models import Currency
 from investments.models import Security
 from ledger.services import create_deposit, create_transfer, create_withdrawal
+from tax.models import ReturnTaxTreatment
 
 
 class Command(BaseCommand):
@@ -63,6 +64,19 @@ class Command(BaseCommand):
                 "opening_date": date(2026, 1, 1),
             },
         )
+        tax_treatment, _ = ReturnTaxTreatment.objects.get_or_create(
+            owner=user,
+            name="Demo Bank Interest Tax",
+            defaults={
+                "treatment_type": ReturnTaxTreatment.TreatmentType.WITHHOLDING,
+                "tax_rate": Decimal("15.00"),
+                "jurisdiction": "MT",
+                "tax_deducted_at_source": True,
+            },
+        )
+        if fixed_term.return_tax_treatment_id != tax_treatment.pk:
+            fixed_term.return_tax_treatment = tax_treatment
+            fixed_term.save(update_fields=["return_tax_treatment", "updated_at"])
         FixedTermDetails.objects.get_or_create(
             account=fixed_term,
             defaults={

@@ -1,1 +1,44 @@
-{% extends 'base.html' %}{% block content %}<div class="page-heading d-flex justify-content-between align-items-end"><div><h1>{{ account.name }}</h1><p>{{ account.institution|default:'No institution' }} · {{ account.get_account_type_display }} · {{ account.currency.code }}</p></div><div class="d-flex gap-2"><a class="btn btn-outline-primary" href="{% url 'ledger:deposit' %}">Add transaction</a><a class="btn btn-outline-primary" href="{% url 'ledger:transfer' %}">Transfer</a><a class="btn btn-outline-secondary" href="{% url 'accounts:edit' account.pk %}">Edit account</a></div></div><div class="card metric-card"><span class="metric-label">Current ledger balance</span><strong class="metric-value">{{ balance }} {{ account.currency.code }}</strong></div>{% if fixed_term %}{% include 'accounts/components/fixed_term_summary.html' %}{% endif %}<div class="card mt-4"><div class="card-header">Recent activity</div><div class="table-responsive"><table class="table mb-0"><thead><tr><th>Date</th><th>Description</th><th class="text-end">Amount</th></tr></thead><tbody>{% for entry in recent_entries %}<tr><td>{{ entry.transaction.transaction_date }}</td><td>{{ entry.transaction.description }}</td><td class="text-end {% if entry.amount > 0 %}amount-positive{% else %}amount-negative{% endif %}">{{ entry.amount }}</td></tr>{% empty %}<tr><td colspan="3" class="empty-state">No activity yet.</td></tr>{% endfor %}</tbody></table></div></div>{% endblock %}
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-heading d-flex justify-content-between align-items-end">
+  <div><h1>{{ account.name }}</h1><p>{{ account.institution|default:'No institution' }} · {{ account.get_account_type_display }} · {{ account.currency.code }}</p></div>
+  <div class="d-flex flex-wrap gap-2">
+    <a class="btn btn-outline-primary" href="{% url 'ledger:deposit' %}">Add transaction</a>
+    <a class="btn btn-outline-primary" href="{% url 'ledger:import' account.pk %}">Import CSV</a>
+    <a class="btn btn-outline-primary" href="{% url 'accounts:export' account.pk %}">Export CSV</a>
+    <a class="btn btn-outline-primary" href="{% url 'ledger:transfer' %}">Transfer</a>
+    <a class="btn btn-outline-secondary" href="{% url 'accounts:edit' account.pk %}">Edit account</a>
+    {% if recent_entries %}<a class="btn btn-outline-danger" href="{% url 'ledger:delete-account-transactions' account.pk %}">Delete all transactions</a>{% endif %}
+  </div>
+</div>
+<div class="card metric-card">
+  <span class="metric-label">Current ledger balance</span>
+  <strong class="metric-value">{{ balance|floatformat:2 }} {{ account.currency.code }}</strong>
+</div>
+{% if fixed_term %}
+  {% include 'accounts/components/fixed_term_summary.html' %}
+{% elif account.account_type == 'SAVINGS' %}
+<div class="card mt-4">
+  <span class="metric-label">Annual interest rate</span>
+  {% if account.savings_annual_interest_rate_percent != None %}<strong class="d-block mt-2">{{ account.savings_annual_interest_rate_percent|floatformat:2 }}%</strong>{% else %}<strong class="d-block mt-2 text-muted">Not set</strong>{% endif %}
+  {% if account.return_tax_treatment %}<div class="mt-4"><span class="metric-label">Tax treatment</span><strong class="d-block mt-2">{{ account.return_tax_treatment.name }}</strong><span class="text-muted">{{ account.return_tax_treatment.get_treatment_type_display }} · {{ account.return_tax_treatment.tax_rate|default:0|floatformat:2 }}%{% if account.return_tax_treatment.jurisdiction %} · {{ account.return_tax_treatment.jurisdiction }}{% endif %}</span></div>{% endif %}
+  <p class="text-muted small mb-0 mt-3">Interest and tax estimates are informational and do not create ledger transactions.</p>
+</div>
+{% elif account.return_tax_treatment %}
+<div class="card mt-4">
+  <span class="metric-label">Tax treatment</span><strong class="d-block mt-2">{{ account.return_tax_treatment.name }}</strong>
+  <span class="text-muted">{{ account.return_tax_treatment.get_treatment_type_display }} · {{ account.return_tax_treatment.tax_rate|default:0|floatformat:2 }}%{% if account.return_tax_treatment.jurisdiction %} · {{ account.return_tax_treatment.jurisdiction }}{% endif %}</span>
+  <p class="text-muted small mb-0 mt-3">Tax estimates are informational and do not constitute tax advice.</p>
+</div>
+{% endif %}
+<div class="card mt-4">
+  <div class="card-header">Recent activity</div>
+  <div class="table-responsive"><table class="table mb-0">
+    <thead><tr><th>Date</th><th>Description</th><th class="text-end">Amount</th><th><span class="visually-hidden">Actions</span></th></tr></thead>
+    <tbody>
+      {% for entry in recent_entries %}<tr><td>{{ entry.transaction.transaction_date }}</td><td>{{ entry.transaction.description }}</td><td class="text-end {% if entry.amount > 0 %}amount-positive{% else %}amount-negative{% endif %}">{{ entry.amount|floatformat:2 }}</td><td class="text-end"><a class="btn btn-sm btn-outline-danger" href="{% url 'ledger:delete' entry.transaction.pk %}">Delete</a></td></tr>
+      {% empty %}<tr><td colspan="4" class="empty-state">No activity yet.</td></tr>{% endfor %}
+    </tbody>
+  </table></div>
+</div>
+{% endblock %}

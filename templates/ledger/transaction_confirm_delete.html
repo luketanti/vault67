@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-heading">
+  <div>
+    <h1>Delete transaction?</h1>
+    <p>This action cannot be undone.</p>
+  </div>
+</div>
+<div class="card form-card">
+  <p class="mb-1"><strong>{{ transaction.description }}</strong></p>
+  <p class="text-muted">{{ transaction.transaction_date }} · {{ transaction.get_transaction_type_display }}</p>
+  <ul class="mb-4">
+    {% for entry in transaction.entries.all %}
+      <li>{{ entry.account.name }}: {{ entry.amount|floatformat:2 }} {{ entry.currency.code }}</li>
+    {% endfor %}
+  </ul>
+  {% if transaction.entries.all|length > 1 %}
+    <div class="alert alert-warning">This transaction has entries in multiple accounts. All of its entries will be deleted.</div>
+  {% endif %}
+  <form method="post">
+    {% csrf_token %}
+    <div class="d-flex gap-2">
+      <button class="btn btn-danger">Yes, delete transaction</button>
+      <a href="{{ cancel_url }}" class="btn btn-outline-secondary">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

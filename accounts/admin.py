@@ -15,7 +15,14 @@ class InstitutionAdmin(admin.ModelAdmin):
 
 @admin.register(FinancialAccount)
 class FinancialAccountAdmin(admin.ModelAdmin):
-    list_display = ("name", "owner", "account_type", "currency", "active")
+    list_display = (
+        "name",
+        "owner",
+        "account_type",
+        "currency",
+        "savings_annual_interest_rate",
+        "active",
+    )
     search_fields = ("name",)
     list_filter = ("account_type", "active", "currency")
 

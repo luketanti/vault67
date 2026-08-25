@@ -102,6 +102,8 @@ def test_fixed_term_edit_keeps_native_date_values_and_formats_rate(client, fixed
     assert 'id="id_fixed_start_date"' in edit_response.content.decode()
     assert 'value="2026-01-01"' in edit_response.content.decode()
     assert 'value="2027-01-01"' in edit_response.content.decode()
+    assert 'id="id_fixed_annual_rate_percent"' in edit_response.content.decode()
+    assert 'value="3.25"' in edit_response.content.decode()
     assert "3.25%" in detail_response.content.decode()
 
 

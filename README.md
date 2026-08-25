@@ -67,9 +67,10 @@ encrypted, access-controlled, stored separately, and restoration-tested.
 
 Vault67 never stores online-banking usernames or passwords. Future integrations
 must use official Open Banking/PSD2, OAuth, or institution-provided APIs. Add
-login rate limiting before exposing a deployment to the public Internet. CSV/OFX
-uploads are not implemented; future import work must validate file type, size,
-filename, and storage handling.
+login rate limiting before exposing a deployment to the public Internet. CSV
+transaction files and supported text-based PDF statements can be imported into
+an account. Imports validate ownership, file type, size, content, currency, and
+transaction rows before writing the complete batch atomically.
 
 Run `make security` with production environment values to perform static,
 dependency, and Django deployment checks. See [SECURITY.md](SECURITY.md) for
@@ -118,3 +119,17 @@ account or an opening deposit when no funding account is selected. Editing the
 contract later does not rewrite that ledger history. Projected gross interest,
 accrued interest, and maturity values are estimates only: they do not post
 interest, settle maturity, renew a deposit, calculate penalties, or withhold tax.
+
+## Return tax estimates
+
+Return tax treatments are reusable, user-owned settings that can be attached to savings and
+fixed-term accounts. Rates are entered as percentages (`15.00` means 15%). Vault67 first
+calculates a gross return, then applies the treatment to estimate tax and the net return; it
+never changes the ledger or treats an estimate as a tax payment.
+
+`WITHHOLDING` estimates tax deducted at source. `YEAR_END` estimates tax due later, even though
+the gross return may still be received. `CUSTOM` follows its “tax deducted at source” setting.
+`NONE` and `EXEMPT` have no estimated tax. Jurisdiction is informational only: Vault67 does not
+yet implement country-specific rules, tax years, tax bands, allowances, deductions, automatic
+withholding transactions, tax posting, or tax authority integration. Tax estimates are not tax
+advice.
