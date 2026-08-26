@@ -1,5 +1,5 @@
 -e .
-pytest>=8.3
+pytest>=9.1.1
 pytest-django>=4.9
 ruff>=0.9
 black>=25.1
