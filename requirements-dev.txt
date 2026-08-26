@@ -1,6 +1,6 @@
 -e .
 pytest>=8.3
-pytest-django>=4.9
+pytest-django>=4.14.0
 ruff>=0.9
 black>=25.1
 bandit>=1.8
