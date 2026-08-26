@@ -119,11 +119,42 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for the future Community/Pro separation.
 - `/` dashboard
 - `/accounts/` accounts, create/edit/archive and detail
 - `/ledger/` transaction history and deposit/withdrawal/income/expense/transfer forms
+- `/investments/` brokerage valuation, holdings, trades, dividends, prices, and FX rates
 - `/admin/` administrative management for all major models
+
+## Investments and valuation
+
+Every buy, sell, dividend, investment fee, and investment tax is an immutable
+`InvestmentTransaction` linked one-to-one to its cash `Transaction`. Both are
+posted atomically. Transactions are the historical source of truth; holdings
+are replayed from them and valuations are calculated from holdings plus manual
+prices and historical FX. Current quantities are never stored as authoritative
+balances.
+
+Weighted-average cost is the only cost-basis method in this phase. A buy adds
+gross consideration, buy fees, and buy taxes to acquisition cost. A partial
+sale removes `quantity × prevailing average cost`; its net realized gain is
+gross proceeds minus sell fees, sell taxes, and allocated cost. Sell costs do
+not change the remaining position. Native cost is retained and the explicit
+trade-time rate (`1 transaction currency = X account-currency units`) preserves
+base-currency cost. Short selling is rejected.
+
+Prices and FX rates are append-only historical observations. Lookup selects the
+latest observation on or before the requested date, never future data. FX is
+stored as `1 base_currency = rate quote_currency`; helpers transparently invert
+a stored pair. Missing prices or foreign rates make affected valuation and
+portfolio totals visibly incomplete rather than substituting zero or one.
+
+Market value minus remaining cost is unrealized gain; realized and unrealized
+gain are accounting measures, not XIRR or time-weighted performance. Brokerage
+totals present cash separately from holdings to avoid double counting.
 
 ## Current limits and next milestone
 
-No bank sync, market/FX API, tax engine, price-based investment valuation, categories, or reports are included. The next milestone should add explicit FX transfer entries, investment buy/sell ledger posting and holdings/cost-basis services, then a reporting-currency valuation layer.
+Deferred: external price and FX APIs, automatic feeds, FIFO/LIFO/specific-lot
+cost basis, short selling, options and derivatives, splits, full capital-gains
+tax and tax-year rules, XIRR/TWR, scheduled jobs, broker synchronization, Open
+Banking, and background queues.
 
 ## Fixed-term deposits
 

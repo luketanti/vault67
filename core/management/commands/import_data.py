@@ -1,7 +1,7 @@
 from django.apps import apps
 from django.core.management import call_command
-from django.core.management.color import no_style
 from django.core.management.base import BaseCommand, CommandError
+from django.core.management.color import no_style
 from django.db import connection, transaction
 
 from core.backup import BACKUP_MODELS, FRESH_INSTANCE_MODELS

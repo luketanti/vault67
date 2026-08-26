@@ -19,7 +19,7 @@ def test_dashboard_shows_account_allocation_and_monthly_movement(client):
         account_type=FinancialAccount.Type.CHECKING,
         currency=currency,
     )
-    create_deposit(user, account, Decimal("250"), date.today(), "Opening balance")
+    create_deposit(user, account, Decimal(250), date.today(), "Opening balance")
     client.force_login(user)
 
     response = client.get(reverse("dashboard:index"))

@@ -5,7 +5,7 @@ requires-python = ">=3.13"
 dependencies = ["Django>=5.2,<5.3", "psycopg[binary]>=3.2", "gunicorn>=23", "whitenoise>=6.8,<7", "pypdf>=6,<7", "defusedxml>=0.7,<0.8"]
 
 [tool.setuptools]
-packages = ["config", "config.settings", "core", "accounts", "ledger", "ledger.calculations", "investments", "tax", "reporting", "dashboard"]
+packages = ["config", "config.settings", "core", "core.services", "accounts", "ledger", "ledger.calculations", "investments", "investments.services", "tax", "reporting", "dashboard"]
 
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "config.settings.test"

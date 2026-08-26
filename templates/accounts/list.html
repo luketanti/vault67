@@ -10,7 +10,7 @@
     <tbody>
       {% for account in accounts %}
       <tr>
-        <td><a href="{% url 'accounts:detail' account.pk %}">{{ account.name }}</a>{% if account.account_number_last4 %}<small class="d-block text-muted">Ending {{ account.account_number_last4 }}</small>{% endif %}</td>
+        <td>{% if account.account_type == 'BROKERAGE' %}<a href="{% url 'investments:account_detail' account.pk %}">{{ account.name }}</a>{% else %}<a href="{% url 'accounts:detail' account.pk %}">{{ account.name }}</a>{% endif %}{% if account.account_number_last4 %}<small class="d-block text-muted">Ending {{ account.account_number_last4 }}</small>{% endif %}</td>
         <td>{{ account.institution|default:'—' }}</td>
         <td><span class="badge-soft">{{ account.get_account_type_display }}</span>{% if account.return_tax_treatment %}<small class="d-block text-muted mt-1">{{ account.return_tax_treatment.name }}</small>{% endif %}</td>
         <td>

@@ -5,8 +5,10 @@ from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
 
 from accounts.models import FinancialAccount, FixedTermDetails, Institution
-from core.models import Currency
-from investments.models import Security
+from core.models import Currency, ExchangeRate
+from investments.models import Security, SecurityPrice
+from investments.services.transactions import create_investment_transaction
+from ledger.models import Transaction
 from ledger.services import create_deposit, create_transfer, create_withdrawal
 from tax.models import ReturnTaxTreatment
 
@@ -49,7 +51,7 @@ class Command(BaseCommand):
             name="Savings Account",
             defaults={"institution": bank, "account_type": "SAVINGS", "currency": eur},
         )
-        FinancialAccount.objects.get_or_create(
+        brokerage, _ = FinancialAccount.objects.get_or_create(
             owner=user,
             name="Brokerage Account",
             defaults={"institution": broker, "account_type": "BROKERAGE", "currency": eur},
@@ -113,14 +115,77 @@ class Command(BaseCommand):
                 date(2026, 1, 1),
                 "Opening principal: 12 Month Fixed Deposit",
             )
-        Security.objects.get_or_create(
+        etf, _ = Security.objects.get_or_create(
             symbol="EXETF",
             exchange="XETRA",
             defaults={"name": "Example ETF", "security_type": "ETF", "currency": eur},
         )
-        Security.objects.get_or_create(
+        usd = Currency.objects.get(code="USD")
+        stock, _ = Security.objects.get_or_create(
             symbol="EXSTK",
-            exchange="XETRA",
-            defaults={"name": "Example Stock", "security_type": "STOCK", "currency": eur},
+            exchange="NASDAQ",
+            defaults={"name": "Example Stock", "security_type": "STOCK", "currency": usd},
         )
+        demo_date = date(2026, 8, 1)
+        ExchangeRate.objects.get_or_create(
+            date=demo_date,
+            base_currency=eur,
+            quote_currency=usd,
+            source="MANUAL",
+            defaults={"rate": Decimal("1.20")},
+        )
+        SecurityPrice.objects.get_or_create(
+            security=etf,
+            date=demo_date,
+            source=SecurityPrice.Source.MANUAL,
+            defaults={"price": Decimal("112.50"), "currency": eur},
+        )
+        SecurityPrice.objects.get_or_create(
+            security=stock,
+            date=demo_date,
+            source=SecurityPrice.Source.MANUAL,
+            defaults={"price": Decimal("155.00"), "currency": usd},
+        )
+        if not brokerage.investment_transactions.exists():
+            create_deposit(user, brokerage, Decimal(10000), demo_date, "Brokerage funding")
+            create_investment_transaction(
+                owner=user,
+                account=brokerage,
+                security=etf,
+                transaction_type=Transaction.Type.BUY,
+                trade_date=demo_date,
+                settlement_date=demo_date,
+                quantity=Decimal(20),
+                price_per_unit=Decimal(100),
+                gross_amount=Decimal(2000),
+                fees=Decimal(5),
+                taxes=Decimal(0),
+                currency=eur,
+            )
+            create_investment_transaction(
+                owner=user,
+                account=brokerage,
+                security=stock,
+                transaction_type=Transaction.Type.BUY,
+                trade_date=demo_date,
+                settlement_date=demo_date,
+                quantity=Decimal(10),
+                price_per_unit=Decimal(140),
+                gross_amount=Decimal(1400),
+                fees=Decimal(4),
+                taxes=Decimal(0),
+                currency=usd,
+                exchange_rate=Decimal("0.833333333333"),
+            )
+            create_investment_transaction(
+                owner=user,
+                account=brokerage,
+                security=etf,
+                transaction_type=Transaction.Type.DIVIDEND,
+                trade_date=demo_date,
+                gross_amount=Decimal(50),
+                fees=Decimal(1),
+                taxes=Decimal("7.50"),
+                currency=eur,
+            )
         self.stdout.write(self.style.SUCCESS("Demo data ready (username: demo, password: demo)."))

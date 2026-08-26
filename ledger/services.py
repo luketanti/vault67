@@ -90,15 +90,22 @@ def create_transfer(owner, source, destination, amount, date, description, notes
     return entry_transaction
 
 
-def account_balance(account):
+def account_balance(account, as_of_date=None):
     from django.db.models import Sum
 
-    return account.entries.aggregate(total=Sum("amount"))["total"] or Decimal(0)
+    entries = account.entries.all()
+    if as_of_date is not None:
+        entries = entries.filter(transaction__transaction_date__lte=as_of_date)
+    return entries.aggregate(total=Sum("amount"))["total"] or Decimal(0)
 
 
 def delete_transaction(owner, entry_transaction):
     if entry_transaction.owner_id != owner.id:
         raise ValidationError("Transaction does not belong to user.")
+    if hasattr(entry_transaction, "investment_detail"):
+        raise ValidationError(
+            "Investment transactions are immutable. Record a correcting transaction instead."
+        )
     with db_transaction.atomic():
         entry_transaction.entries.all().delete()
         entry_transaction.delete()
@@ -107,6 +114,10 @@ def delete_transaction(owner, entry_transaction):
 def delete_account_transactions(owner, account):
     if account.owner_id != owner.id:
         raise ValidationError("Account does not belong to user.")
+    if account.investment_transactions.exists():
+        raise ValidationError(
+            "Investment transactions are immutable and cannot be bulk deleted."
+        )
     with db_transaction.atomic():
         transaction_ids = list(
             Transaction.objects.filter(owner=owner, entries__account=account)

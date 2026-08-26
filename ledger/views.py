@@ -1,5 +1,6 @@
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.core.exceptions import ValidationError
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
 from django.views.generic import FormView, ListView, TemplateView
@@ -146,7 +147,11 @@ class TransactionDeleteView(LoginRequiredMixin, TemplateView):
     def post(self, request, *args, **kwargs):
         entry_transaction = self.get_transaction()
         description = entry_transaction.description
-        delete_transaction(request.user, entry_transaction)
+        try:
+            delete_transaction(request.user, entry_transaction)
+        except ValidationError as exc:
+            messages.error(request, exc.messages[0])
+            return redirect("ledger:list")
         messages.success(request, f'Deleted transaction "{description}".')
         return redirect("ledger:list")
 
@@ -182,7 +187,11 @@ class AccountTransactionsDeleteView(LoginRequiredMixin, TemplateView):
 
     def post(self, request, *args, **kwargs):
         account = self.get_account()
-        count = delete_account_transactions(request.user, account)
+        try:
+            count = delete_account_transactions(request.user, account)
+        except ValidationError as exc:
+            messages.error(request, exc.messages[0])
+            return redirect("accounts:detail", pk=account.pk)
         messages.success(
             request,
             f"Deleted {count} transaction{'s' if count != 1 else ''} from {account.name}.",
