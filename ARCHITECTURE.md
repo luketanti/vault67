@@ -27,3 +27,18 @@ The layers are intentionally one-way:
 Accounting services live in `investments/services/`; the general historical FX
 lookup lives in `core/services/fx.py`. The cost-basis interface can later route
 to FIFO, LIFO, or specific-lot implementations without changing views.
+
+## Annual tax layers
+
+Annual tax reporting keeps source transactions immutable and separate from tax
+classification and calculation. `tax.services.aggregation` reads actual ledger
+interest, dividends, weighted-average sale events, withholding, tax payments,
+and explicit manual adjustments. It converts each event at its historical date
+and returns line items, category breakdowns, rule traces, completeness reasons,
+and estimates without persisting calculated totals.
+
+`TaxYear` defines the reporting boundary. Deductions, allowances, adjustments,
+and simple rules are owner-scoped configuration. The deterministic rule engine
+supports flat rates, thresholds, fixed allowances, and fixed deductions. Its
+interfaces leave room for future loss carry-forward and prior-year credits,
+but do not encode complete jurisdiction legislation.

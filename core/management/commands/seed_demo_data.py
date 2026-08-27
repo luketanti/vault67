@@ -10,7 +10,7 @@ from investments.models import Security, SecurityPrice
 from investments.services.transactions import create_investment_transaction
 from ledger.models import Transaction
 from ledger.services import create_deposit, create_transfer, create_withdrawal
-from tax.models import ReturnTaxTreatment
+from tax.models import ReturnTaxTreatment, TaxRule, TaxYear
 
 
 class Command(BaseCommand):
@@ -187,5 +187,34 @@ class Command(BaseCommand):
                 fees=Decimal(1),
                 taxes=Decimal("7.50"),
                 currency=eur,
+            )
+        demo_tax_year, _ = TaxYear.objects.get_or_create(
+            owner=user,
+            jurisdiction="MT",
+            name="2026",
+            defaults={
+                "start_date": date(2026, 1, 1),
+                "end_date": date(2026, 12, 31),
+                "reporting_currency": eur,
+                "notes": "Sample configuration only; not an official or legal tax rule set.",
+            },
+        )
+        for name, category in (
+            ("Demo Interest Rule", "INTEREST"),
+            ("Demo Dividend Rule", "DIVIDEND"),
+            ("Demo Capital Gain Rule", "CAPITAL_GAIN"),
+        ):
+            TaxRule.objects.get_or_create(
+                owner=user,
+                tax_year=demo_tax_year,
+                name=name,
+                defaults={
+                    "jurisdiction": "MT",
+                    "rule_type": TaxRule.Type.FLAT_RATE,
+                    "category": category,
+                    "rate": Decimal("15.00"),
+                    "priority": 100,
+                    "metadata": {"disclaimer": "Demo value only; not legal advice."},
+                },
             )
         self.stdout.write(self.style.SUCCESS("Demo data ready (username: demo, password: demo)."))

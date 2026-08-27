@@ -120,6 +120,7 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for the future Community/Pro separation.
 - `/accounts/` accounts, create/edit/archive and detail
 - `/ledger/` transaction history and deposit/withdrawal/income/expense/transfer forms
 - `/investments/` brokerage valuation, holdings, trades, dividends, prices, and FX rates
+- `/tax/` tax years, annual estimates, rules, adjustments, and CSV exports
 - `/admin/` administrative management for all major models
 
 ## Investments and valuation
@@ -149,12 +150,43 @@ Market value minus remaining cost is unrealized gain; realized and unrealized
 gain are accounting measures, not XIRR or time-weighted performance. Brokerage
 totals present cash separately from holdings to avoid double counting.
 
+## Annual tax reporting
+
+Tax years are owner-scoped periods with arbitrary start/end dates, jurisdiction,
+reporting currency, and workflow status. Annual summaries are calculated live;
+they are not stored as authoritative totals. Source transactions remain the
+financial record, aggregation classifies actual events, and configurable rules
+calculate an explainable estimate.
+
+Actual posted interest, gross dividends and withholding, weighted-average
+realized gains/losses (using trade date), and TAX ledger debits are aggregated.
+Projected interest and unrealized gains are explicitly excluded. Foreign
+amounts use explicit investment FX where available and otherwise the latest
+historical rate on or before the event date. Missing FX or cost basis marks a
+summary incomplete rather than substituting zero.
+Date-bearing deductions and adjustments use their own dates; allowances have
+no event date and use the tax-year start date for any required FX conversion.
+
+Calculation order is: aggregate gross events; net capital losses; apply manual
+allowances; apply manual deductions; apply threshold/allowance/deduction rules
+in priority order; apply flat-rate rules; subtract actual withholding and actual
+payments. Rates store user-facing percentages (`15.00` means 15%). Calculations
+retain Decimal precision until display/export rounding. Overall reductions are
+allocated in the documented category order: interest, dividends, capital gains,
+employment income, then other income.
+
+Filed years remain visible and continue to show a live estimate, but normal
+edits to the year, deductions, allowances, adjustments, and rules are locked.
+Vault67 estimates are informational and are not tax advice or filed liability.
+
 ## Current limits and next milestone
 
 Deferred: external price and FX APIs, automatic feeds, FIFO/LIFO/specific-lot
-cost basis, short selling, options and derivatives, splits, full capital-gains
-tax and tax-year rules, XIRR/TWR, scheduled jobs, broker synchronization, Open
-Banking, and background queues.
+cost basis, short selling, options and derivatives, splits, government filing,
+official forms, complete progressive country legislation, loss carry-forward,
+foreign-tax treaty logic, residency/joint/household filing, VAT, corporate or
+payroll tax, automatic legal updates, XIRR/TWR, scheduled jobs, broker
+synchronization, Open Banking, and background queues.
 
 ## Fixed-term deposits
 
@@ -181,7 +213,7 @@ never changes the ledger or treats an estimate as a tax payment.
 
 `WITHHOLDING` estimates tax deducted at source. `YEAR_END` estimates tax due later, even though
 the gross return may still be received. `CUSTOM` follows its “tax deducted at source” setting.
-`NONE` and `EXEMPT` have no estimated tax. Jurisdiction is informational only: Vault67 does not
-yet implement country-specific rules, tax years, tax bands, allowances, deductions, automatic
-withholding transactions, tax posting, or tax authority integration. Tax estimates are not tax
-advice.
+`NONE` and `EXEMPT` have no estimated tax. These account-level projections remain separate from
+actual annual taxable events and actual withholding. Annual tax years use user-configured rules;
+Vault67 does not present jurisdiction defaults as legislation or connect to tax authorities. Tax
+estimates are not tax advice.
